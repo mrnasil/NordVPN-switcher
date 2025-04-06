@@ -84,17 +84,22 @@ def get_ip():
     return ip
 
 def get_nordvpn_servers():
-    serverlist =  BeautifulSoup(requests.get("https://nordvpn.com/api/server").content,"html.parser")
-    site_json=json.loads(serverlist.text)
+    # Fetch the server data from the updated NordVPN API
+    response = requests.get("https://api.nordvpn.com/v1/servers?limit=0")
+    site_json = response.json()
 
-    filtered_servers = {key: [] for key in ['windows_names','linux_names']}
-    for specific_dict in site_json:
+    # Initialize filtered servers dictionary
+    filtered_servers = {'windows_names': [], 'linux_names': []}
+
+    for server in site_json:
         try:
-            if specific_dict['categories'][0]['name'] == 'Standard VPN servers':
-                filtered_servers['windows_names'].append(specific_dict['name'])
-                filtered_servers['linux_names'].append(specific_dict['domain'].split('.')[0])
-        except IndexError:
-            pass
+            # Check if the server belongs to "Standard VPN servers"
+            if any(group['title'] == 'Standard VPN servers' for group in server.get('groups', [])):
+                filtered_servers['windows_names'].append(server['name'])
+                filtered_servers['linux_names'].append(server['hostname'].split('.')[0])
+        except KeyError:
+            pass  # Skip servers with missing data
+
     return filtered_servers
 
 ###############
